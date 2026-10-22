@@ -82,21 +82,18 @@
         <!-- Status Indicator -->
         <div style="text-align: center;">
             <div id="statusBadge" class="status-badge badge-checkin">
-                <i class="fas fa-clock"></i> Memuat status...
+                <i class="fas fa-spinner fa-spin"></i> Memuat status...
             </div>
         </div>
 
         <form id="attendanceForm">
             <input type="hidden" id="attMode" value="checkin">
             
-            <div class="form-group">
-                <label>Tanggal</label>
-                <input type="date" id="attDate" class="form-control" required readonly>
-            </div>
+            <!-- INPUT TANGGAL DIHAPUS UNTUK MENCEGAH BACKDATE -->
             
             <div class="form-group">
                 <label>Nama Karyawan</label>
-                <input type="text" id="attName" class="form-control" placeholder="Masukkan nama lengkap" required>
+                <input type="text" id="attName" class="form-control" placeholder="Masukkan nama lengkap" required readonly>
             </div>
 
             <!-- Form Check-in Only -->
@@ -132,7 +129,7 @@
                             <strong>Rp 76.923</strong>
                         </div>
                         <div style="display: flex; justify-content: space-between; color: var(--text-sec); font-size: 12px;">
-                            <span>(Rp 2.000.000 ÷ 26 hari)</span>
+                            <span>(Rp 2.000.000  26 hari)</span>
                             <span></span>
                         </div>
                         <hr style="border: 0; border-top: 1px dashed #86efac; margin: 12px 0;">
@@ -177,8 +174,6 @@
         const DAILY_BASE_PAY = Math.round(2000000 / 26); // 76923
         let isProcessingAutoCheckout = false;
 
-        document.getElementById('attDate').valueAsDate = new Date();
-
         document.addEventListener('DOMContentLoaded', async () => {
             const storedUser = JSON.parse(localStorage.getItem('financeRajUser'));
             if (!storedUser || !['Driver', 'Karyawan'].includes(storedUser.role)) {
@@ -186,62 +181,29 @@
             }
             document.getElementById('welcomeName').textContent = `Halo, ${storedUser.fullName}`;
             document.getElementById('attName').value = storedUser.fullName;
-            document.getElementById('attName').readOnly = true;
             
             await checkTodayStatus();
         });
 
-        // FUNGSI HELPER UNTUK NORMALISASI TANGGAL KE FORMAT YYYY-MM-DD
-        function normalizeDate(dateVal) {
-            if (!dateVal) return '';
-            
-            // Jika sudah string YYYY-MM-DD
-            if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal.trim())) {
-                return dateVal.trim().substring(0, 10);
-            }
-            
-            // Jika string DD/MM/YYYY atau DD-MM-YYYY
-            if (typeof dateVal === 'string' && (dateVal.includes('/') || dateVal.includes('-'))) {
-                const parts = dateVal.split(/[\/\-]/);
-                if (parts.length === 3) {
-                    // Asumsi bagian pertama adalah tanggal jika < 31 dan bagian ketiga > 1000 (tahun)
-                    if (parts[2].length === 4) {
-                        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-                    }
-                    // Atau format YYYY/MM/DD
-                    if (parts[0].length === 4) {
-                        return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
-                    }
-                }
-            }
-            
-            // Jika Object Date atau Timestamp
-            try {
-                const d = new Date(dateVal);
-                if (!isNaN(d.getTime())) {
-                    return d.toISOString().split('T')[0];
-                }
-            } catch(e) {}
-            
-            return String(dateVal).trim();
-        }
-
-        // FUNGSI DETEKSI STATUS YANG SANGAT ROBUST
+        // FUNGSI DETEKSI STATUS YANG LEBIH ROBUST TANPA INPUT TANGGAL
         async function checkTodayStatus() {
-            const todayInput = document.getElementById('attDate').value; // Selalu YYYY-MM-DD dari input type="date"
             const userName = document.getElementById('attName').value.trim().toLowerCase();
+            const now = new Date();
             
             try {
-                const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=100`);
+                const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=50`);
                 const result = await res.json();
                 
                 if(result.status === 'success') {
-                    // Cari record hari ini dengan normalisasi tanggal
+                    // Cari record dengan nama yang sama DAN waktu check-in dalam 24 jam terakhir
+                    // Ini mengatasi masalah perbedaan zona waktu antara server dan client
                     const todayRecord = result.data.find(r => {
                         const recordName = String(r.nama).trim().toLowerCase();
-                        const normalizedRecordDate = normalizeDate(r.tanggal);
+                        const checkinTime = new Date(r.checkin).getTime();
+                        const timeDiff = now.getTime() - checkinTime;
+                        const hoursDiff = timeDiff / (1000 * 60 * 60);
                         
-                        return recordName === userName && normalizedRecordDate === todayInput;
+                        return recordName === userName && hoursDiff >= 0 && hoursDiff <= 24;
                     });
 
                     const badge = document.getElementById('statusBadge');
@@ -268,7 +230,6 @@
                         calculatePreview();
 
                         // AUTO CHECKOUT JIKA SUDAH LEWAT JAM 23:00
-                        const now = new Date();
                         if (now.getHours() >= 23 && !isProcessingAutoCheckout) {
                             isProcessingAutoCheckout = true;
                             setTimeout(() => {
@@ -336,11 +297,12 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
 
+            // TANGGAL DIAMBIL OTOMATIS DARI SISTEM SAAT SUBMIT (ANTI BACKDATE)
             const payload = {
                 action: 'submitAttendance',
                 formData: {
                     mode: mode,
-                    tanggal: document.getElementById('attDate').value,
+                    tanggal: new Date().toISOString().split('T')[0], // YYYY-MM-DD otomatis
                     nama: document.getElementById('attName').value,
                     hadir: document.getElementById('attHadir')?.value || 'Ya',
                     trip: 0, // BACKEND AGNOSTIC
