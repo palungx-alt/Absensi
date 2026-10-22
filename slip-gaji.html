@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slip Gaji Bulanan - FinanceRAJ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --primary: #4f46e5; --bg-body: #f8fafc; --surface: #ffffff; --text-main: #0f172a; --text-sec: #64748b; --border: #e2e8f0; --radius: 16px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+        
+        .top-bar { background: var(--surface); padding: 16px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .btn-back { background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; }
+        
+        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
+        
+        .filter-bar { background: var(--surface); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
+        select { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; }
+        .btn-print { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        
+        /* SLIP GAJI DESIGN */
+        .slip-card { background: white; padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .slip-header { text-align: center; border-bottom: 2px solid var(--text-main); padding-bottom: 16px; margin-bottom: 20px; }
+        .slip-header h2 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+        .slip-header p { font-size: 12px; color: var(--text-sec); }
+        
+        .slip-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; font-size: 13px; }
+        .slip-info div span:first-child { color: var(--text-sec); display: block; font-size: 11px; margin-bottom: 2px; }
+        .slip-info div span:last-child { font-weight: 600; }
+        
+        .slip-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+        .slip-table th { text-align: left; padding: 10px; border-bottom: 2px solid var(--text-main); font-size: 11px; text-transform: uppercase; color: var(--text-sec); }
+        .slip-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+        .slip-table tr:last-child td { border-bottom: none; font-weight: 700; font-size: 14px; border-top: 2px solid var(--text-main); }
+        .text-right { text-align: right; }
+        
+        .slip-footer { margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); }
+        .signature-box { text-align: center; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 8px; width: 150px; }
+        
+        .loading { text-align: center; padding: 40px; color: var(--text-sec); }
+
+        /* PRINT STYLE */
+        @media print {
+            body { background: white; padding: 0; }
+            .top-bar, .filter-bar, .no-print { display: none !important; }
+            .container { max-width: 100%; margin: 0; padding: 20px; }
+            .slip-card { box-shadow: none; border: none; padding: 0; }
+            .slip-header { border-bottom: 2px solid black; }
+            .slip-table th { border-bottom: 2px solid black; color: black; }
+            .slip-table td { border-bottom: 1px solid #ccc; }
+            .slip-table tr:last-child td { border-top: 2px solid black; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar no-print">
+        <a href="absensi.html" class="btn-back"><i class="fas fa-arrow-left"></i></a>
+        <h1 style="font-size: 18px; font-weight: 700;">Slip Gaji Bulanan</h1>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <div class="container">
+        <div class="filter-bar no-print">
+            <select id="monthSelect" onchange="generateSlip()">
+                <!-- Options will be populated by JS -->
+            </select>
+            <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+        </div>
+
+        <div class="slip-card" id="slipContent">
+            <div class="loading"><i class="fas fa-spinner fa-spin"></i> Memuat data...</div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxSf-y1s_ewWXblCpu4N0NHFdSM7Y0usDaJiEdSJE-5Jv35oVGAkgAsSAifJL6VTJimXQ/exec';
+        let allHistory = [];
+        let currentUser = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = JSON.parse(localStorage.getItem('financeRajUser'));
+            if (!currentUser || !['Driver', 'Karyawan'].includes(currentUser.role)) {
+                window.location.href = 'index.html'; return;
+            }
+            
+            // Populate Month Dropdown (Last 12 months)
+            const select = document.getElementById('monthSelect');
+            const now = new Date();
+            for(let i=0; i<12; i++) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                const label = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                const opt = document.createElement('option');
+                opt.value = val; opt.text = label;
+                if(i===0) opt.selected = true;
+                select.appendChild(opt);
+            }
+
+            // Fetch Data
+            try {
+                const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=all`);
+                const result = await res.json();
+                if(result.status === 'success') {
+                    // Filter only current user's data
+                    allHistory = result.data.filter(row => row.nama === currentUser.fullName);
+                    generateSlip();
+                }
+            } catch(err) { console.error(err); }
+        });
+
+        function generateSlip() {
+            const selectedMonth = document.getElementById('monthSelect').value;
+            const [year, month] = selectedMonth.split('-').map(Number);
+            const monthName = new Date(year, month-1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            
+            // Filter data for selected month
+            const monthlyData = allHistory.filter(row => {
+                const d = new Date(row.tanggal);
+                return d.getFullYear() === year && (d.getMonth() + 1) === month && row.status === 'Paid';
+            });
+
+            // Calculate Totals
+            let totalDays = 0;
+            let totalMeal = 0;
+            let totalPay = 0;
+            
+            monthlyData.forEach(row => {
+                if(row.hadir === 'Ya') totalDays++;
+                if(row.makan === 'Ya') totalMeal += 15000;
+                totalPay += row.total;
+            });
+
+            const dailyBase = Math.round(2000000 / 26);
+            const calculatedBase = totalDays * dailyBase;
+
+            const slipHTML = `
+                <div class="slip-header">
+                    <h2>SLIP GAJI KARYAWAN</h2>
+                    <p>CV REZEKI AMANAH JAYA GROUP</p>
+                    <p style="margin-top:8px; font-weight:700; color:var(--primary);">Periode: ${monthName}</p>
+                </div>
+                
+                <div class="slip-info">
+                    <div><span>Nama Karyawan</span><span>${currentUser.fullName}</span></div>
+                    <div><span>Jabatan</span><span>${currentUser.role}</span></div>
+                    <div><span>Hari Kerja Efektif</span><span>${totalDays} Hari</span></div>
+                    <div><span>Tanggal Cetak</span><span>${new Date().toLocaleDateString('id-ID')}</span></div>
+                </div>
+
+                <table class="slip-table">
+                    <thead>
+                        <tr><th>Komponen Gaji</th><th class="text-right">Jumlah (Rp)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Gaji Pokok Harian (${totalDays} x Rp ${formatRupiahNum(dailyBase)})</td>
+                            <td class="text-right">${formatRupiahNum(calculatedBase)}</td>
+                        </tr>
+                        <tr>
+                            <td>Tunjangan Uang Makan Workshop</td>
+                            <td class="text-right">${formatRupiahNum(totalMeal)}</td>
+                        </tr>
+                        <tr>
+                            <td>TOTAL GAJI BERSIH</td>
+                            <td class="text-right">${formatRupiahNum(totalPay)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="slip-footer">
+                    <div>Dicetak otomatis oleh Sistem FinanceRAJ<br>Dokumen ini sah tanpa tanda tangan basah</div>
+                    <div class="signature-box">
+                        <p>Mengetahui,</p>
+                        <p style="margin-top:30px; font-weight:700;">Administrator</p>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('slipContent').innerHTML = slipHTML;
+        }
+
+        function formatRupiahNum(num) {
+            return new Intl.NumberFormat('id-ID').format(num);
+        }
+    </script>
+</body>
+</html>
