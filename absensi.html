@@ -191,9 +191,44 @@
             await checkTodayStatus();
         });
 
-        // FUNGSI DETEKSI STATUS YANG LEBIH ROBUST
+        // FUNGSI HELPER UNTUK NORMALISASI TANGGAL KE FORMAT YYYY-MM-DD
+        function normalizeDate(dateVal) {
+            if (!dateVal) return '';
+            
+            // Jika sudah string YYYY-MM-DD
+            if (typeof dateVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateVal.trim())) {
+                return dateVal.trim().substring(0, 10);
+            }
+            
+            // Jika string DD/MM/YYYY atau DD-MM-YYYY
+            if (typeof dateVal === 'string' && (dateVal.includes('/') || dateVal.includes('-'))) {
+                const parts = dateVal.split(/[\/\-]/);
+                if (parts.length === 3) {
+                    // Asumsi bagian pertama adalah tanggal jika < 31 dan bagian ketiga > 1000 (tahun)
+                    if (parts[2].length === 4) {
+                        return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                    }
+                    // Atau format YYYY/MM/DD
+                    if (parts[0].length === 4) {
+                        return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+                    }
+                }
+            }
+            
+            // Jika Object Date atau Timestamp
+            try {
+                const d = new Date(dateVal);
+                if (!isNaN(d.getTime())) {
+                    return d.toISOString().split('T')[0];
+                }
+            } catch(e) {}
+            
+            return String(dateVal).trim();
+        }
+
+        // FUNGSI DETEKSI STATUS YANG SANGAT ROBUST
         async function checkTodayStatus() {
-            const todayInput = document.getElementById('attDate').value; // Format: YYYY-MM-DD
+            const todayInput = document.getElementById('attDate').value; // Selalu YYYY-MM-DD dari input type="date"
             const userName = document.getElementById('attName').value.trim().toLowerCase();
             
             try {
@@ -201,20 +236,12 @@
                 const result = await res.json();
                 
                 if(result.status === 'success') {
-                    // Cari record hari ini dengan toleransi format tanggal & nama
+                    // Cari record hari ini dengan normalisasi tanggal
                     const todayRecord = result.data.find(r => {
-                        // Normalisasi nama dari backend
                         const recordName = String(r.nama).trim().toLowerCase();
+                        const normalizedRecordDate = normalizeDate(r.tanggal);
                         
-                        // Normalisasi tanggal dari backend (bisa YYYY-MM-DD atau DD/MM/YYYY)
-                        let recordDate = String(r.tanggal).trim();
-                        if(recordDate.includes('/')) {
-                            const parts = recordDate.split('/');
-                            // Asumsi DD/MM/YYYY -> convert ke YYYY-MM-DD
-                            recordDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-                        }
-                        
-                        return recordName === userName && recordDate === todayInput;
+                        return recordName === userName && normalizedRecordDate === todayInput;
                     });
 
                     const badge = document.getElementById('statusBadge');
