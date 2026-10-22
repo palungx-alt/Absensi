@@ -191,16 +191,32 @@
             await checkTodayStatus();
         });
 
+        // FUNGSI DETEKSI STATUS YANG LEBIH ROBUST
         async function checkTodayStatus() {
-            const today = document.getElementById('attDate').value;
-            const name = document.getElementById('attName').value;
+            const todayInput = document.getElementById('attDate').value; // Format: YYYY-MM-DD
+            const userName = document.getElementById('attName').value.trim().toLowerCase();
             
             try {
                 const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=100`);
                 const result = await res.json();
                 
                 if(result.status === 'success') {
-                    const todayRecord = result.data.find(r => r.nama === name && r.tanggal === today);
+                    // Cari record hari ini dengan toleransi format tanggal & nama
+                    const todayRecord = result.data.find(r => {
+                        // Normalisasi nama dari backend
+                        const recordName = String(r.nama).trim().toLowerCase();
+                        
+                        // Normalisasi tanggal dari backend (bisa YYYY-MM-DD atau DD/MM/YYYY)
+                        let recordDate = String(r.tanggal).trim();
+                        if(recordDate.includes('/')) {
+                            const parts = recordDate.split('/');
+                            // Asumsi DD/MM/YYYY -> convert ke YYYY-MM-DD
+                            recordDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                        }
+                        
+                        return recordName === userName && recordDate === todayInput;
+                    });
+
                     const badge = document.getElementById('statusBadge');
                     const btn = document.getElementById('btnSubmit');
                     const title = document.getElementById('pageTitle');
@@ -218,7 +234,7 @@
                         btn.className = 'btn-submit btn-success';
                         btn.innerHTML = '<i class="fas fa-door-open"></i> Konfirmasi Pulang & Simpan Gaji';
                         
-                        if(todayRecord.makan === 'Ya') {
+                        if(String(todayRecord.makan).toLowerCase() === 'ya') {
                             document.getElementById('toggleMakan').classList.add('active');
                             document.getElementById('attMakan').value = 'Ya';
                         }
@@ -300,7 +316,7 @@
                     tanggal: document.getElementById('attDate').value,
                     nama: document.getElementById('attName').value,
                     hadir: document.getElementById('attHadir')?.value || 'Ya',
-                    trip: 0, // BACKEND AGNOSTIC: KIRIM 0 AGAR AMAN
+                    trip: 0, // BACKEND AGNOSTIC
                     makan: document.getElementById('attMakan').value
                 }
             };
