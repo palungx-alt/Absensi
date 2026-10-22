@@ -82,7 +82,7 @@
         <!-- Status Indicator -->
         <div style="text-align: center;">
             <div id="statusBadge" class="status-badge badge-checkin">
-                <i class="fas fa-clock"></i> Belum Check-in Hari Ini
+                <i class="fas fa-clock"></i> Memuat status...
             </div>
         </div>
 
@@ -91,7 +91,7 @@
             
             <div class="form-group">
                 <label>Tanggal</label>
-                <input type="date" id="attDate" class="form-control" required>
+                <input type="date" id="attDate" class="form-control" required readonly>
             </div>
             
             <div class="form-group">
@@ -119,11 +119,14 @@
                 </div>
             </div>
 
-            <!-- Form Checkout (Tanpa Input Trip) -->
+            <!-- Form Checkout / Konfirmasi Pulang -->
             <div id="checkoutFields" style="display: none;">
                 <div class="form-group">
-                    <label>Rincian Gaji Hari Ini</label>
-                    <div style="padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid var(--border); font-size: 14px; line-height: 1.6;">
+                    <label style="color: var(--success); font-weight: 700; margin-bottom: 12px;">
+                        <i class="fas fa-door-open"></i> KONFIRMASI PULANG
+                    </label>
+                    
+                    <div style="padding: 16px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; font-size: 14px; line-height: 1.6; margin-bottom: 12px;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                             <span>Gaji Pokok Harian</span>
                             <strong>Rp 76.923</strong>
@@ -132,14 +135,15 @@
                             <span>(Rp 2.000.000 ÷ 26 hari)</span>
                             <span></span>
                         </div>
-                        <hr style="border: 0; border-top: 1px dashed var(--border); margin: 12px 0;">
-                        <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--primary);">
-                            <span>Total Estimasi</span>
+                        <hr style="border: 0; border-top: 1px dashed #86efac; margin: 12px 0;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--primary); font-size: 15px;">
+                            <span>Total Estimasi Hari Ini</span>
                             <span id="checkoutTotalPreview">Rp 76.923</span>
                         </div>
                     </div>
-                    <div style="font-size: 12px; color: var(--text-sec); margin-top: 8px;">
-                        *Klik tombol di bawah untuk menyelesaikan absensi
+                    
+                    <div style="font-size: 12px; color: var(--text-sec); text-align: center;">
+                        Klik tombol di bawah untuk mencatat waktu pulang & menyimpan gaji
                     </div>
                 </div>
             </div>
@@ -171,6 +175,7 @@
     <script>
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbxSf-y1s_ewWXblCpu4N0NHFdSM7Y0usDaJiEdSJE-5Jv35oVGAkgAsSAifJL6VTJimXQ/exec';
         const DAILY_BASE_PAY = Math.round(2000000 / 26); // 76923
+        let isProcessingAutoCheckout = false;
 
         document.getElementById('attDate').valueAsDate = new Date();
 
@@ -182,15 +187,18 @@
             document.getElementById('welcomeName').textContent = `Halo, ${storedUser.fullName}`;
             document.getElementById('attName').value = storedUser.fullName;
             document.getElementById('attName').readOnly = true;
+            
             await checkTodayStatus();
         });
 
         async function checkTodayStatus() {
             const today = document.getElementById('attDate').value;
             const name = document.getElementById('attName').value;
+            
             try {
                 const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=100`);
                 const result = await res.json();
+                
                 if(result.status === 'success') {
                     const todayRecord = result.data.find(r => r.nama === name && r.tanggal === today);
                     const badge = document.getElementById('statusBadge');
@@ -198,30 +206,49 @@
                     const title = document.getElementById('pageTitle');
 
                     if (todayRecord && todayRecord.status === 'Pending') {
+                        // SUDAH CHECK-IN, BELUM CHECKOUT
                         document.getElementById('attMode').value = 'checkout';
                         document.getElementById('checkinFields').style.display = 'none';
                         document.getElementById('checkoutFields').style.display = 'block';
+                        
                         badge.className = 'status-badge badge-checkin';
-                        badge.innerHTML = '<i class="fas fa-hourglass-half"></i> Sudah Check-in (Belum Selesai)';
-                        title.textContent = 'Selesaikan Absensi';
+                        badge.innerHTML = '<i class="fas fa-hourglass-half"></i> Sudah Check-in (Belum Pulang)';
+                        
+                        title.textContent = 'Konfirmasi Pulang';
                         btn.className = 'btn-submit btn-success';
-                        btn.innerHTML = '<i class="fas fa-check-circle"></i> Check-out & Simpan Gaji';
+                        btn.innerHTML = '<i class="fas fa-door-open"></i> Konfirmasi Pulang & Simpan Gaji';
+                        
                         if(todayRecord.makan === 'Ya') {
                             document.getElementById('toggleMakan').classList.add('active');
                             document.getElementById('attMakan').value = 'Ya';
                         }
                         calculatePreview();
+
+                        // AUTO CHECKOUT JIKA SUDAH LEWAT JAM 23:00
+                        const now = new Date();
+                        if (now.getHours() >= 23 && !isProcessingAutoCheckout) {
+                            isProcessingAutoCheckout = true;
+                            setTimeout(() => {
+                                alert("Sistem mendeteksi waktu sudah lewat 23:00.\nAbsensi Anda akan otomatis di-checkout.");
+                                document.getElementById('attendanceForm').dispatchEvent(new Event('submit'));
+                            }, 1500);
+                        }
+
                     } else if (todayRecord && todayRecord.status === 'Paid') {
+                        // SUDAH SELESAI HARI INI (ANTI DOUBLE CHECKIN)
                         document.getElementById('attendanceForm').style.display = 'none';
                         badge.className = 'status-badge badge-done';
                         badge.innerHTML = '<i class="fas fa-check-double"></i> Absensi Hari Ini Selesai';
                         title.textContent = 'Absensi Selesai';
                         document.getElementById('welcomeName').textContent = `Terima kasih, ${storedUser.fullName}!`;
+                        
                         const preview = document.getElementById('calcPreview');
                         preview.classList.add('show');
                         document.getElementById('calcTotal').textContent = formatRupiah(todayRecord.total);
                         document.querySelector('.calc-label').textContent = 'Total Gaji Hari Ini';
+
                     } else {
+                        // BELUM CHECK-IN SAMA SEKALI
                         document.getElementById('attMode').value = 'checkin';
                         badge.className = 'status-badge badge-checkin';
                         badge.innerHTML = '<i class="fas fa-clock"></i> Belum Check-in Hari Ini';
@@ -273,7 +300,7 @@
                     tanggal: document.getElementById('attDate').value,
                     nama: document.getElementById('attName').value,
                     hadir: document.getElementById('attHadir')?.value || 'Ya',
-                    trip: 0, // KIRIM 0 AGAR BACKEND TETAP AMAN
+                    trip: 0, // BACKEND AGNOSTIC: KIRIM 0 AGAR AMAN
                     makan: document.getElementById('attMakan').value
                 }
             };
