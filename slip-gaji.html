@@ -15,43 +15,56 @@
         .top-bar { background: var(--surface); padding: 16px 20px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .btn-back { background: var(--bg-body); border: none; padding: 10px; border-radius: 12px; cursor: pointer; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: inherit; }
         
-        .container { max-width: 600px; margin: 20px auto; padding: 0 16px; }
+        .container { max-width: 700px; margin: 20px auto; padding: 0 16px; }
         
         .filter-bar { background: var(--surface); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; display: flex; gap: 12px; align-items: center; }
         select { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; }
         .btn-print { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         
         /* SLIP GAJI DESIGN */
-        .slip-card { background: white; padding: 30px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .slip-header { text-align: center; border-bottom: 2px solid var(--text-main); padding-bottom: 16px; margin-bottom: 20px; }
-        .slip-header h2 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-        .slip-header p { font-size: 12px; color: var(--text-sec); }
+        .slip-card { background: white; padding: 40px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
         
-        .slip-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; font-size: 13px; }
-        .slip-info div span:first-child { color: var(--text-sec); display: block; font-size: 11px; margin-bottom: 2px; }
-        .slip-info div span:last-child { font-weight: 600; }
+        /* KOP SURAT GAMBAR */
+        .kop-surat-img { 
+            width: 100%; 
+            max-width: 600px; 
+            height: auto; 
+            display: block; 
+            margin: 0 auto 20px auto; 
+            border-bottom: 3px double #000; 
+            padding-bottom: 15px;
+        }
+
+        .slip-title { text-align: center; margin-bottom: 24px; }
+        .slip-title h2 { font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .slip-title p { font-size: 14px; color: var(--primary); font-weight: 700; }
         
-        .slip-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
-        .slip-table th { text-align: left; padding: 10px; border-bottom: 2px solid var(--text-main); font-size: 11px; text-transform: uppercase; color: var(--text-sec); }
-        .slip-table td { padding: 10px; border-bottom: 1px solid var(--border); }
-        .slip-table tr:last-child td { border-bottom: none; font-weight: 700; font-size: 14px; border-top: 2px solid var(--text-main); }
+        .slip-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; font-size: 13px; border: 1px solid var(--border); padding: 16px; border-radius: 8px; background: #f8fafc; }
+        .slip-info div span:first-child { color: var(--text-sec); display: block; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+        .slip-info div span:last-child { font-weight: 700; color: var(--text-main); font-size: 14px; }
+        
+        .slip-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+        .slip-table th { text-align: left; padding: 12px; border-bottom: 2px solid var(--text-main); font-size: 11px; text-transform: uppercase; color: var(--text-sec); font-weight: 700; }
+        .slip-table td { padding: 12px; border-bottom: 1px solid var(--border); }
+        .slip-table tr:last-child td { border-bottom: none; font-weight: 800; font-size: 16px; border-top: 2px solid var(--text-main); color: var(--primary); }
         .text-right { text-align: right; }
         
-        .slip-footer { margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); }
-        .signature-box { text-align: center; margin-top: 40px; border-top: 1px solid var(--border); padding-top: 8px; width: 150px; }
+        .slip-footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; font-size: 12px; color: var(--text-sec); }
+        .signature-box { text-align: center; width: 180px; }
+        .signature-line { border-top: 1px solid var(--text-main); margin-top: 60px; padding-top: 8px; font-weight: 700; color: var(--text-main); }
         
         .loading { text-align: center; padding: 40px; color: var(--text-sec); }
 
         /* PRINT STYLE */
         @media print {
-            body { background: white; padding: 0; }
+            body { background: white; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .top-bar, .filter-bar, .no-print { display: none !important; }
-            .container { max-width: 100%; margin: 0; padding: 20px; }
-            .slip-card { box-shadow: none; border: none; padding: 0; }
-            .slip-header { border-bottom: 2px solid black; }
+            .container { max-width: 100%; margin: 0; padding: 0; }
+            .slip-card { box-shadow: none; border: none; padding: 20px; border-radius: 0; }
+            .slip-info { background: white; border: 1px solid #ddd; }
             .slip-table th { border-bottom: 2px solid black; color: black; }
-            .slip-table td { border-bottom: 1px solid #ccc; }
-            .slip-table tr:last-child td { border-top: 2px solid black; }
+            .slip-table tr:last-child td { border-top: 2px solid black; color: black; }
+            .signature-line { border-top: 1px solid black; }
         }
     </style>
 </head>
@@ -67,7 +80,7 @@
             <select id="monthSelect" onchange="generateSlip()">
                 <!-- Options will be populated by JS -->
             </select>
-            <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+            <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak PDF</button>
         </div>
 
         <div class="slip-card" id="slipContent">
@@ -104,8 +117,8 @@
                 const res = await fetch(`${GAS_URL}?action=getAttendanceHistory&limit=all`);
                 const result = await res.json();
                 if(result.status === 'success') {
-                    // Filter only current user's data
-                    allHistory = result.data.filter(row => row.nama === currentUser.fullName);
+                    // Filter only current user's paid data
+                    allHistory = result.data.filter(row => row.nama === currentUser.fullName && row.status === 'Paid');
                     generateSlip();
                 }
             } catch(err) { console.error(err); }
@@ -119,17 +132,17 @@
             // Filter data for selected month
             const monthlyData = allHistory.filter(row => {
                 const d = new Date(row.tanggal);
-                return d.getFullYear() === year && (d.getMonth() + 1) === month && row.status === 'Paid';
+                return d.getFullYear() === year && (d.getMonth() + 1) === month;
             });
 
             // Calculate Totals
             let totalDays = 0;
-            let totalMeal = 0;
+            let totalMealAllowance = 0;
             let totalPay = 0;
             
             monthlyData.forEach(row => {
                 if(row.hadir === 'Ya') totalDays++;
-                if(row.makan === 'Ya') totalMeal += 15000;
+                if(row.makan === 'Ya') totalMealAllowance += 15000;
                 totalPay += row.total;
             });
 
@@ -137,44 +150,52 @@
             const calculatedBase = totalDays * dailyBase;
 
             const slipHTML = `
-                <div class="slip-header">
+                <!-- KOP SURAT GAMBAR -->
+                <img src="assets/kop-surat.png" alt="Kop Surat CV RAJ" class="kop-surat-img" onerror="this.style.display='none'">
+                
+                <div class="slip-title">
                     <h2>SLIP GAJI KARYAWAN</h2>
-                    <p>CV REZEKI AMANAH JAYA GROUP</p>
-                    <p style="margin-top:8px; font-weight:700; color:var(--primary);">Periode: ${monthName}</p>
+                    <p>Periode: ${monthName}</p>
                 </div>
                 
                 <div class="slip-info">
                     <div><span>Nama Karyawan</span><span>${currentUser.fullName}</span></div>
-                    <div><span>Jabatan</span><span>${currentUser.role}</span></div>
+                    <div><span>Jabatan / Role</span><span>${currentUser.role}</span></div>
                     <div><span>Hari Kerja Efektif</span><span>${totalDays} Hari</span></div>
                     <div><span>Tanggal Cetak</span><span>${new Date().toLocaleDateString('id-ID')}</span></div>
                 </div>
 
                 <table class="slip-table">
                     <thead>
-                        <tr><th>Komponen Gaji</th><th class="text-right">Jumlah (Rp)</th></tr>
+                        <tr>
+                            <th>Komponen Gaji</th>
+                            <th class="text-right">Jumlah (Rp)</th>
+                        </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Gaji Pokok Harian (${totalDays} x Rp ${formatRupiahNum(dailyBase)})</td>
+                            <td>Gaji Pokok Harian (${totalDays} hari x Rp ${formatRupiahNum(dailyBase)})</td>
                             <td class="text-right">${formatRupiahNum(calculatedBase)}</td>
                         </tr>
                         <tr>
                             <td>Tunjangan Uang Makan Workshop</td>
-                            <td class="text-right">${formatRupiahNum(totalMeal)}</td>
+                            <td class="text-right">${formatRupiahNum(totalMealAllowance)}</td>
                         </tr>
                         <tr>
-                            <td>TOTAL GAJI BERSIH</td>
+                            <td>TOTAL GAJI BERSIH DITERIMA</td>
                             <td class="text-right">${formatRupiahNum(totalPay)}</td>
                         </tr>
                     </tbody>
                 </table>
 
                 <div class="slip-footer">
-                    <div>Dicetak otomatis oleh Sistem FinanceRAJ<br>Dokumen ini sah tanpa tanda tangan basah</div>
+                    <div style="max-width: 60%;">
+                        <p style="font-weight: 600; color: var(--text-main); margin-bottom: 4px;">Catatan:</p>
+                        <p>Dicetak otomatis oleh Sistem FinanceRAJ.<br>Dokumen ini sah tanpa tanda tangan basah.</p>
+                    </div>
                     <div class="signature-box">
                         <p>Mengetahui,</p>
-                        <p style="margin-top:30px; font-weight:700;">Administrator</p>
+                        <div class="signature-line">Administrator</div>
                     </div>
                 </div>
             `;
